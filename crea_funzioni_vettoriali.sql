@@ -20,7 +20,13 @@ TABLE (
 	cl_hidv integer,
 	cl_lwdv integer,
 	cl_pstr integer,
-	cl_shrb integer	
+	cl_shrb integer,
+	av_buf_a1 double precision,
+	av_buf_a23 double precision,
+	av_buf_oth double precision,
+	pm10_diff double precision,
+	nh3_diff double precision,
+	co_punt double precision
 ) AS $$ 
 BEGIN
 	RETURN QUERY
@@ -46,7 +52,7 @@ BEGIN
 	)
 	-- interseca le maglie della griglia sopra identificate con i centroidi e ricava i valori per i parametri desiderati
 	SELECT 
-		idcell,
+		idcell::integer,
 		dis_imp::integer,
 		dis_a1::integer,
 		dis_a2::integer,
@@ -64,7 +70,13 @@ BEGIN
 		clc_hidv::integer,
 		clc_lwdv::integer,
 		clc_pstr::integer,
-		clc_shrb::integer
+		clc_shrb::integer,
+		avg_buf_a1::double precision,
+		avg_buf_a23::double precision,
+		avg_buf_oth::double precision,
+		pm10_diffu::double precision,
+		nh3_diffu::double precision,
+		co_puntual::double precision
 	FROM
 		vgriglia.centroidi,gr
 	WHERE

@@ -69,7 +69,7 @@ def estrai_dati(yymmddI,yymmddF):
 
 
     #parametri di interesse
-    parametri=("t2m","tp","sp","pbl00","pbl12","u10","v10","ndvi","dust")
+    parametri=("t2m","tp","sp","pbl00","pbl12","u10","v10","ndvi","dust","aod550")
 
 
     # In[7]:
@@ -122,6 +122,7 @@ def estrai_dati(yymmddI,yymmddF):
 
     for param in parametri:
         listaOut=[]
+        
         for banda in lista_bande:
 
             estraiRasterDati(lista=listaOut,parametro=param,band=(banda+1))
