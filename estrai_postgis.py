@@ -3,13 +3,10 @@
 import pandas as pd
 import geopandas as gpd
 from sqlalchemy import create_engine
-import matplotlib.pyplot as plt
 from shapely.geometry import Point
 import shapely.wkb
-import seaborn as sns
 import numpy as np
 import sys
-import pdb
 from functools import reduce
 from datetime import datetime
 
@@ -39,6 +36,17 @@ def estrai_dati(yymmddI,yymmddF,parametriRAST=parametriRasters):
         un dataframe con i dati di pm10 delle centraline nel periodo compreso tra yymmddI e yymmddF, i dati
         vettoriali (non temporali) e raster (temporali) associati al centroide della griglia di ciascuna centralina.
     '''
+    
+    import pandas as pd
+    from geopandas import GeoDataFrame
+    from sqlalchemy import create_engine
+    from shapely.geometry import Point
+    import shapely.wkb
+    import numpy as np
+    from sys import exit
+    from functools import reduce
+    from datetime import datetime
+    
 
     #i dati nel database riguardano il 2015. annoI e annoF vanno cambiati solo se cambiano i dati sul database
     annoI,annoF=("2015","2015")
@@ -47,12 +55,12 @@ def estrai_dati(yymmddI,yymmddF,parametriRAST=parametriRasters):
     try:
         data1=datetime.date(datetime.strptime(yymmddI,"%Y-%m-%d"))
     except ValueError as v:
-        sys.exit(1)
+        exit(1)
         
     try:
         data2=datetime.date(datetime.strptime(yymmddF,"%Y-%m-%d"))
     except ValueError as v:
-        sys.exit(1)
+        exit(1)
       
         
 
@@ -78,7 +86,7 @@ def estrai_dati(yymmddI,yymmddF,parametriRAST=parametriRasters):
     lista_bande=lista_bande[0].tolist()
 
     if len(lista_bande)==0:
-        sys.exit("Nessuna delle date passate è disponibile nel database postgis, esco!")
+        exit("Nessuna delle date passate è disponibile nel database postgis, esco!")
     elif len(lista_bande) < len(calendario):
         print("Alcune delle date richieste non sono disponibili sul database postgis!")
 
@@ -92,11 +100,17 @@ def estrai_dati(yymmddI,yymmddF,parametriRAST=parametriRasters):
 
 
     #questa funzione richiama la funzione rgriglia.get_raster_value in postgresql
-    def estraiRasterDati(lista,parametro,band):
-        '''Funzione per estrarre i dati raster dal database postgis in corrispondenza delle stazioni'''
-        if band <0 or band > 366:
-            sys.exit("Numero di banda errato")
-
+    def estraiRasterDati(parametro,band=1):
+        
+        ''' Nessun controllo sulla banda. Già precedentemente sono state filtrate le date in modo di non avere date
+            fuori dal range dati su database postgis
+            --- Parametri ---
+                parametro: parametro raster da acquisire
+                band: banda da cui acquisire il parametro. Default=1
+            --- Return ---
+                data frame con i dati rasters
+        '''
+        
         #query: solo le centraline che ci interessano, sottoinsieme di tutte quelle dispoinili
         myquery="SELECT * FROM rgriglia.get_raster_value({0},{1})".format("'"+parametro+"'",band)
         dati=pd.read_sql_query(myquery,con=motore)
@@ -104,8 +118,7 @@ def estrai_dati(yymmddI,yymmddF,parametriRAST=parametriRasters):
         dati['banda']=band
         #la tabella postgresql restituisce una colonna "valore" che vogliamo rinominare con il nome del parametro
         dati.rename(columns={"valore": parametro},inplace=True)
-        lista.append(dati)
-        return None
+        return dati
 
 
     # In[45]:
@@ -114,11 +127,8 @@ def estrai_dati(yymmddI,yymmddF,parametriRAST=parametriRasters):
     listaFinale=[]
 
     for nome_esteso,param in parametriRAST.items():
-        listaOut=[]
 
-        for banda in lista_bande:
-            estraiRasterDati(lista=listaOut,parametro=param,band=(banda+1))
-            
+        listaOut=[estraiRasterDati(parametro=param,band=(banda+1)) for banda in lista_bande ]           
         out=pd.concat(listaOut,axis=0,ignore_index=True)
         listaFinale.append(out)
 
@@ -130,29 +140,21 @@ def estrai_dati(yymmddI,yymmddF,parametriRAST=parametriRasters):
     #creazione della colonna geometry
     geom=cenPM10.apply(lambda x: shapely.wkb.loads(x['geom'],hex=True),axis=1)
 
-
-
     cenPM10.geom=geom
 
 
-    # In[50]:
-
-
     #contiene per le centraline i valori dei rasters
-    cenPM10=gpd.GeoDataFrame(cenPM10,crs="+init=epsg:32632",geometry='geom')
-
-
-    # In[51]:
-
+    cenPM10=GeoDataFrame(cenPM10,crs="+init=epsg:32632",geometry='geom')
 
     #centraline che hanno dati
     id_centraline=str(tuple(np.unique(cenPM10.id_centralina).tolist()))
     
-    #crea la sequenza di date da passare a postgresql, seuqenza racchiusa tra parentesi e con le date tra apici
-    stringa_date_per_query="("+ ",".join("'{0}'".format(w) for w in calendarioEffettivo.dt.date.astype(str).tolist() ) + ")"
     
-    #acquisizione dati del PM10
-    #for id in id_centraline:
+    #acquisizione dati giornalieri del PM10
+    
+    #crea la sequenza di date da passare a postgresql, sequenza racchiusa tra parentesi e con le date tra apici
+    stringa_date_per_query="("+ ",".join("'{0}'".format(w) for w in calendarioEffettivo.dt.date.astype(str).tolist() ) + ")"
+
     myquery='''SELECT id_centralina,
                       data_record,
                       data_record_value 
@@ -168,19 +170,15 @@ def estrai_dati(yymmddI,yymmddF,parametriRAST=parametriRasters):
     pm10.data_record=pd.to_datetime(pm10.data_record,format="%Y-%m-%d")
     pm10.data_record=pm10.data_record.dt.date
 
-    # In[54]:
-
-
-    #se sto considerando più di un anno non posso creare la banda con dt.dayofyear
-    #perchè anno dopo anno si ripeterebbero il numero di "banda"
+    #se sto considerando più di un anno non posso creare la banda con dt.dayofyear perchè anno dopo anno si 
+    #ripeterebbero il numero di "banda". Ovvero: dt.dayofyear mi dice che un "primo gennaio" è il numero 1 dell'anno ma se io
+    #ho due anni di dati il secondo primo gennaio non lo devo più identificare con "1" ma con 367.
     A=calendarioCompleto.dt.date.tolist() 
     B=np.unique(pm10.data_record.tolist())
-    #non posso assehnare np.nan altrimenti dopo assegnando a "banda" un intero numpy genererebbe un errore,
-    #assegno come valore iniziale -1
+    
+    #non posso inizializzare il campo "banda" con np.nan: np.nan è di tipo numeric mentre le bande sono identificate da interi
+    #assegnando np.nan a "banda" numpy genera un errore quando poi vado ad assegnare un intero. Inizializziamo con -1
     pm10['banda']=-1
-
-
-    # In[55]:
 
 
     for bb in B:
@@ -193,16 +191,12 @@ def estrai_dati(yymmddI,yymmddF,parametriRAST=parametriRasters):
     pm10.banda=pm10.banda.astype(int)
 
    
-    # In[56]:
-
-
     #uniamo i dati del pm10 con i valori raster
     serie=pd.merge(pm10,cenPM10,how="left",on=["id_centralina","banda"])
 
 
     #acquisizione dei dati dai centroidi di griglia: sfrutta la funzione in plsql vgriglia.get_vector_value() memorizzata su postgis
     parametriPuntuali=pd.read_sql_query(con=motore,sql="SELECT * FROM vgriglia.get_vector_value()")
-
 
     #uniamo i dati vettoriali con i dati raster
     dati=pd.merge(serie,parametriPuntuali,how="inner",left_on="idcell",right_on="id")
