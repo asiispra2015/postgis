@@ -1,4 +1,5 @@
 --verifica dei dati assegnati ai centroidi di griglia contro gli stessi dati estratti dai vettoriali o rasters
+BEGIN;
 DROP TABLE IF EXISTS vgriglia.puntiCasuali;
 DROP TABLE IF EXISTS casuali;
 
@@ -21,14 +22,14 @@ CREATE TABLE vgriglia.puntiCasuali AS(
 	SELECT
 
 		c.*,
-		St_Value(dem.rast,1,c.geometria) AS rdem,
-		St_Value(dis_a1.rast,1,c.geometria) AS rdis_a1,
-		St_Value(dis_a2.rast,1,c.geometria) AS rdis_a2,
-		St_Value(dis_aero.rast,1,c.geometria) AS rdis_aero,
-		St_Value(dis_costa.rast,1,c.geometria) AS rdis_costa,
-		St_Value(impervious.rast,1,c.geometria) AS rimpervious,
+		round(St_Value(dem.rast,1,c.geometria)) AS rdem,
+		round(St_Value(dis_a1.rast,1,c.geometria)) AS rdis_a1,
+		round(St_Value(dis_a2.rast,1,c.geometria)) AS rdis_a2,
+		round(St_Value(dis_aero.rast,1,c.geometria)) AS rdis_aero,
+		round(St_Value(dis_costa.rast,1,c.geometria)) AS rdis_costa,
+		round(St_Value(impervious.rast,1,c.geometria)) AS rimpervious,
 		clzone.zona AS vclzone,
-		St_Value(popistat.rast,1,c.geometria) AS rpopistat, 
+		round(St_Value(popistat.rast,1,c.geometria)) AS rpopistat, 
 		0 AS vclc_agri,
 		0 AS vclc_arbl,
 		0 AS vclc_crop,
@@ -199,6 +200,8 @@ CREATE TABLE vgriglia.sintesi AS (
 
 );
 
+DROP TABLE IF EXISTS vgriglia.sintesi_stats;
+
 CREATE TABLE vgriglia.sintesi_stats AS (
 
 	SELECT 
@@ -260,3 +263,5 @@ CREATE TABLE vgriglia.sintesi_stats AS (
 
 
 );
+
+COMMIT;
