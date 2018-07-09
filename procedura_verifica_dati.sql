@@ -208,12 +208,12 @@ CREATE TABLE vgriglia.sintesi_stats AS (
 	MAX(diff_dis_a1) AS max_diff_dis_a1,
 	MIN(diff_dis_a2) AS min_diff_dis_a2,
 	MAX(diff_dis_a2) AS max_diff_dis_a2,
-	MIN(diff_dis_aero) AS min_diff_dis_a2,
+	MIN(diff_dis_aero) AS min_diff_dis_aero,
 	MAX(diff_dis_aero) AS max_diff_dis_aero,
-	MIN(diff_dis_i_surface) AS min_diff_i_surface,
-	MAX(diff_dis_i_surface) AS max_diff_i_surface,
-	MIN(diff_dis_d_costa) AS min_diff_d_costa,
-	MAX(diff_dis_d_costa) AS max_diff_d_costa,
+	MIN(diff_i_surface) AS min_diff_i_surface,
+	MAX(diff_i_surface) AS max_diff_i_surface,
+	MIN(diff_d_costa) AS min_diff_d_costa,
+	MAX(diff_d_costa) AS max_diff_d_costa,
 	MIN(diff_q_dem) AS min_diff_q_dem,
 	MAX(diff_q_dem) AS max_diff_q_dem,
 	MIN(diff_climate_zone) AS min_diff_climate_zone,
@@ -255,7 +255,7 @@ CREATE TABLE vgriglia.sintesi_stats AS (
 
 		vgriglia.sintesi
 	GROUP BY
-		id
+		id,geometria
 
 
 
