@@ -1,26 +1,33 @@
---verifica dei dati assegnati ai centroidi di griglia contro gli stessi dati estratti dai vettoriali o rasters
+--Problema: il database postgis è venuto quando già si era svolto parte del lavoro lavorando sullo shapefile dei centroidi
+--a cui sono stati assegnati i valori dei vari rasters e vettoriali. Questi valori assegnati sono corretti? In corso d'opera si è commesso qualche errore?
+-- Sospetto: la funzione di R raster::extract ha un'opzione che permette di mantenere i campi NA...il sospetto è che in qualche estrazione non si sia utilizzato
+--correttamente extract.
+
+--La procedura che seque crea una tabella vgriglia.sintesi_stats utilizzando la funzione vgriglia.randomPoints in cui ai valori dei centroidi sono confrontati
+--con gli stessi valori acquisiti on-the-fly mediante postgis dai vari campi vettoriali e rasters. Queste differenze tra valori sono tutte pari a zero?
+
 BEGIN;
 DROP TABLE IF EXISTS vgriglia.puntiCasuali;
-DROP TABLE IF EXISTS casuali;
+--DROP TABLE IF EXISTS casuali;
 
-CREATE TABLE casuali AS (
+CREATE TEMPORARY TABLE casuali AS (
 
-		SELECT * FROM vgriglia.randomPoints(5000)
+		SELECT * FROM vgriglia.randomPoints(15000)
 
 );
 
 CREATE INDEX casuali_idx ON casuali USING gist(geometria);
 
+
 CREATE TABLE vgriglia.puntiCasuali AS(
 
 	--estrae punti casuali da vgriglia.centroidi	
 
-	--crea una tabella in cui ai valori dei centroidi sono associati i valori 
-	--estratti dai raster in modo di confrontare i valori memorizzati su centroidi
-	--con quelli presi da raster. Se tutti i programmi in R sono corretti i valori 
-	--debbono coincidere
+	--Ai valori del corine land cover associamo ora il valore 0, ovvero non li inseriamo nella query. Perchè?
+	-- perchè i vettori (poligoni) del corine land cover non sono spazialmente contigui..questo probabilmente comporta che, se inseriti in questa query,
+        --postgis non riesce a sfruttare l'indice spaziale e la query diventa interminabile. Invece il successivo aggiornamento dei campi del corine landcover
+        -- (gli update che seguono) sono operazioni velocissime.
 	SELECT
-
 		c.*,
 		round(St_Value(dem.rast,1,c.geometria)) AS rdem,
 		round(St_Value(dis_a1.rast,1,c.geometria)) AS rdis_a1,
@@ -76,16 +83,14 @@ CREATE TABLE vgriglia.puntiCasuali AS(
 			St_Intersects(avg_buf_a23.rast,1,c.geometria) AND	
 			St_Intersects(avg_buf_oth.rast,1,c.geometria)
 
-
-
 		)
 
 );
 
 
 CREATE INDEX puntiCasuali_idx ON vgriglia.puntiCasuali USING gist(geometria);
-DROP TABLE IF EXISTS casuali;
 
+-- a questo punto acquisiamo i valori dai vettoriali del Corine Land Cover.
 UPDATE vgriglia.puntiCasuali SET vclc_agri=z.perc FROM (
 
 	Select area/10000 AS perc,geom FROM vgriglia.clc_agri  
@@ -162,6 +167,7 @@ UPDATE vgriglia.puntiCasuali SET vclc_shrb=z.perc FROM (
 
 DROP TABLE IF EXISTS vgriglia.sintesi;
 
+--tabella con le differenze tra i campi già assegnati ai centroidi e gli stessi campi riacquisiti dai raster
 CREATE TABLE vgriglia.sintesi AS (
 
 	SELECT 
@@ -200,6 +206,8 @@ CREATE TABLE vgriglia.sintesi AS (
 
 );
 
+--tabella in cui, per ogni centroide tra quelli casualmente estratti, compare il valore minimo e massimo delle differenze
+-- tra campi assegnati ai centroidi e i campi ricalcolati dai rasters
 DROP TABLE IF EXISTS vgriglia.sintesi_stats;
 
 CREATE TABLE vgriglia.sintesi_stats AS (
@@ -260,8 +268,8 @@ CREATE TABLE vgriglia.sintesi_stats AS (
 	GROUP BY
 		id,geometria
 
-
-
 );
+
+CREATE INDEX stats_idx ON vgriglia.sintesi_stats USING gist(geometria);
 
 COMMIT;
