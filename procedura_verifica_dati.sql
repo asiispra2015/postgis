@@ -1,3 +1,8 @@
+-- ATTENZIONE: LA PARTE DEL CORINE LAND COVER NON DA I RISULTATI CORRETTI INFATTI UN CENTROIDE DI GRIGLIA NON NECESSARIAMENTE TOCCA UN POLIGONO DEL CORINE LAND COVER
+-- IN QUANTO ALL'INTERNO DI OGNI CELLA I POLIGONO DEL CORINE LAND COVER POSSONO ESSERE SPEZZETTATI.
+
+-- I CAMPI DEL CORINE LAND COVER SONO STATI TUTTI RICALCOLATI CON LA FUNZIONE vgriglia.update_clc;
+
 --Problema: il database postgis è venuto quando già si era svolto parte del lavoro lavorando sullo shapefile dei centroidi
 --a cui sono stati assegnati i valori dei vari rasters e vettoriali. Questi valori assegnati sono corretti? In corso d'opera si è commesso qualche errore?
 -- Sospetto: la funzione di R raster::extract ha un'opzione che permette di mantenere i campi NA...il sospetto è che in qualche estrazione non si sia utilizzato
