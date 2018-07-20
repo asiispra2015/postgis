@@ -3,6 +3,8 @@
 CREATE OR REPLACE FUNCTION vgriglia.get_vector_value() RETURNS 
 TABLE ( 
 	id integer,
+	x double precision,
+	y double precision,
 	d_impianti integer,
 	d_a1 integer,
 	d_a2 integer,
@@ -54,6 +56,8 @@ BEGIN
 	-- interseca le maglie della griglia sopra identificate con i centroidi e ricava i valori per i parametri desiderati
 	SELECT 
 		idcell::integer,
+		St_X(centroidi.geom)::double precision,
+		St_Y(centroidi.geom)::double precision,
 		dis_imp::integer,
 		dis_a1::integer,
 		dis_a2::integer,
