@@ -29,7 +29,8 @@ TABLE (
 	pm10_diff double precision,
 	nh3_diff double precision,
 	co_punt double precision,
-	cod_reg smallint
+	cod_reg smallint,
+	zonal integer
 ) AS $$ 
 BEGIN
 	RETURN QUERY
@@ -82,7 +83,8 @@ BEGIN
 		pm10_diffu::double precision,
 		nh3_diffu::double precision,
 		co_puntual::double precision,
-		regioni::smallint
+		regioni::smallint,
+		zs::integer
 	FROM
 		vgriglia.centroidi,gr
 	WHERE
